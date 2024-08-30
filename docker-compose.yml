@@ -1,0 +1,21 @@
+services:
+  redis:
+    image: "redis:latest"
+    container_name: redis_lexicom
+    ports:
+      - "6379:6379"
+
+  web:
+    build:
+      context: .
+    container_name: web_lexicom
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+
+
