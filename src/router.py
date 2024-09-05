@@ -1,78 +1,33 @@
-import asyncio_redis as redis
-from fastapi import HTTPException, APIRouter, Query
+from fastapi import APIRouter, Depends
 
-from src.config import settings
-from src.exceptions import PhoneNumberAlreadyExistsException, PhoneNumberNotExistsException
-from src.schemas import SPhoneData
-from src.utils.phone_number import validate_phone
+from src.dao import RedisDAO
+from src.schemas import SPhoneData, SPhone
+from src.service import PhoneService
 
 phone_router = APIRouter(prefix="", tags=["Номера телефонов"])
 
-redis_host, redis_port = settings.redis_host_port
 
-
-async def get_redis_client():
-    return await redis.Connection.create(host=redis_host, port=redis_port)
-
-
-@phone_router.on_event("startup")
-async def startup_event():
-    global redis_client
-    redis_client = await get_redis_client()
-
-
-@phone_router.on_event("shutdown")
-async def shutdown_event():
-    global redis_client
-    if redis_client:
-        redis_client.close()
-        await redis_client.wait_closed()
-
-
-@phone_router.get("/all_keys")
-async def get_all():
+@phone_router.get("/all_keys", response_model=list[SPhoneData])
+async def get_all() -> list[dict]:
     """
     Получает все номера телефонов и адреса из базы Redis
 
     Пример запроса: http://127.0.0.1:8000/get_all
     """
-    try:
-        keys_futures = await redis_client.keys('*')
-        data = {}
-        print(f"all keys: {keys_futures}")
-
-        for key_future in keys_futures:
-            key = await key_future
-            value = await redis_client.get(key)
-            print(f"key: {key}, value: {value}")
-            if value:
-                data[key] = value
-
-        return {"data": data}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    data = await PhoneService.get_all_keys_and_values(RedisDAO())
+    return data
 
 
 @phone_router.get("/check_data", response_model=SPhoneData)
-async def check_data(phone: int):
+async def check_data(data: SPhone = Depends()) -> dict:
     """
     Проводит проверку номера на валидность и получает адрес из базы Redis, если номер телефона существует.
     Если номера телефона не существует, то выбрасывается исключение
 
     Пример запроса: http://127.0.0.1:8000/check_data?phone=89991234567
     """
-    phone = validate_phone(phone)
-
-    try:
-        address = await redis_client.get(phone)
-        if address:
-            data = {"phone": phone, "address": address}
-            return data
-        else:
-            raise PhoneNumberNotExistsException
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    data = await PhoneService.get(data, RedisDAO())
+    return data
 
 
 @phone_router.post("/write_data")
@@ -83,14 +38,8 @@ async def write_data(data: SPhoneData):
 
     Пример запроса: {phone: "89991234567", address: "Москва, ул. Пушкина, дом Колотушкина"}
     """
-    phone = validate_phone(data.phone)
-    exist_phone = await redis_client.exists(phone)
-
-    if not exist_phone:
-        await redis_client.set(phone, data.address)
-        return {"message": "Данные успешно сохранены"}
-    else:
-        raise PhoneNumberAlreadyExistsException
+    data = await PhoneService.add_phone(data, RedisDAO())
+    return data
 
 
 @phone_router.put("/update_data")
@@ -101,11 +50,5 @@ async def update_data(data: SPhoneData):
 
     Пример запроса: {phone: "89991234567", address: "Москва, ул. Пушкина, дом Колотушкина"}
     """
-    phone = validate_phone(data.phone)
-    exist_phone = await redis_client.exists(phone)
-
-    if exist_phone:
-        await redis_client.set(phone, data.address)
-        return {"message": "Данные успешно обновлены"}
-    else:
-        raise PhoneNumberNotExistsException
+    data = await PhoneService.update_address(data, RedisDAO())
+    return data

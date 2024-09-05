@@ -6,7 +6,7 @@ from src.exceptions import IncorrectPhoneNumberFormatException
 phone_pattern_ru = re.compile(r'^(?:7|8)\d{10}$')
 
 
-def validate_phone(phone: int = Query(..., description="Номер телефона")) -> str:
+def validate_phone(phone: int = Query(..., description="Номер телефона")):
     phone = str(phone)
     if not phone_pattern_ru.match(phone):
         raise IncorrectPhoneNumberFormatException

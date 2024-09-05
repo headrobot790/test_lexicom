@@ -6,12 +6,12 @@ PhoneNumberAlreadyExistsException = HTTPException(
     detail="Телефон уже существует",
 )
 
-PhoneNumberNotExistsException = HTTPException(
-    status_code=status.HTTP_400_BAD_REQUEST,
+PhoneNumberNotExistException = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
     detail="Номер не найден"
 )
 
 IncorrectPhoneNumberFormatException = HTTPException(
     status_code=status.HTTP_400_BAD_REQUEST,
-    detail="Некорректный номер телефона. Он должен начинаться с +7, 7 или 8 и содержать 10 цифр после этого."
+    detail="Некорректный номер телефона. Он должен начинаться с 7 или 8 и содержать 10 цифр после этого."
 )

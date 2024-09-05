@@ -9,8 +9,8 @@ readme = "README.md"
 python = "^3.11"
 fastapi = "^0.112.2"
 uvicorn = {extras = ["standart"], version = "^0.30.6"}
-asyncio-redis = "^0.16.0"
 pydantic-settings = "^2.4.0"
+redis = "^5.0.8"
 
 
 [build-system]
